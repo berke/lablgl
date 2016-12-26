@@ -23,15 +23,18 @@ COBJS =		ml_gl$(XO)	ml_glu$(XO)	ml_raw$(XO) ml_glarray$(XO) \
 		ml_glutess$(XO)	ml_shader$(XO)
 TOGLOBJS =	ml_togl$(XO)	$(TOGLDIR)/togl$(XO)
 
-all:	var2def$(XE) var2switch$(XE) lablgl.cma
+all: tools
+	$(MAKE) lablgl.cma
 
 opt: lablgl.cmxa
 
+tools: var2def$(XE) var2switch$(XE)
+
 var2def$(XE): var2def.ml
-	$(LINKER) -pp camlp4o var2def.ml -o $@
+	$(LINKER) var2def.ml -o $@
 
 var2switch$(XE): var2switch.ml
-	$(LINKER) -pp camlp4o var2switch.ml -o $@
+	$(LINKER) var2switch.ml -o $@
 
 ifeq ($(TOOLCHAIN), msvc)
 liblablgl$(XA): $(COBJS)
@@ -46,7 +49,8 @@ lablgl.cmxa: liblablgl$(XA) $(OPTOBJS) $(CONFIG)
 	$(OPTLINK) -a -o $@ $(OPTOBJS) -cclib -llablgl \
 	  -cclib "$(GLLIBS)"
 else
-liblablgl$(XA) lablgl.cma: $(COBJS) $(LIBOBJS) $(CONFIG)
+liblablgl$(XA): lablgl.cma
+lablgl.cma: $(COBJS) $(LIBOBJS) $(CONFIG)
 	$(LIBRARIAN) -o lablgl $(COBJS) $(LIBOBJS) $(GLLIBS) $(XLIBS)
 lablgl.cmxa: $(COBJS) $(OPTOBJS) $(CONFIG)
 	$(LIBRARIAN) -o lablgl $(COBJS) $(OPTOBJS) $(GLLIBS) $(XLIBS)
@@ -86,7 +90,7 @@ clean:
 		*.dll var2def$(XE) var2switch$(XE) lablgltop$(XE) lablgl$(XB)
 
 depend:
-	ocamldep  -pp camlp4o *.ml *.mli > .depend
+	ocamldep *.ml *.mli > .depend
 
 #dependencies
 ml_gl$(XO): ml_gl.h gl_tags.h gl_tags.c ml_raw.h

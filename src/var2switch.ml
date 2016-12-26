@@ -13,21 +13,28 @@ let main () =
     (fun s -> prefix := s)
     "";
   let s = lexer (Stream.of_channel stdin) in
-  try while true do match s with parser
-      [< ' Ident tag >] ->
-	incr tag_number;
-	print_string (if !table then "    {MLTAG_" else "    case MLTAG_");
-	print_string tag;
-	print_string (if !table then ", " else ":\treturn ");
-	let name =
-	  match s with parser
-	      [< ' Kwd "->" ; ' Ident name >] -> name
-	    | [< >] -> !prefix ^ String.uppercase tag
-	in print_string name;
-	print_string (if !table then "},\n" else ";\n")
-    | [< ' Kwd "$$" >] -> raise End_of_file
-    | [< >] -> raise End_of_file
-  done with End_of_file ->
+  try
+    while true do
+      match Stream.npeek 1 s with
+      | [Ident tag] ->
+	 Stream.junk s;
+	 incr tag_number;
+	 print_string (if !table then "    {MLTAG_" else "    case MLTAG_");
+	 print_string tag;
+	 print_string (if !table then ", " else ":\treturn ");
+	 let name =
+	   (* match s with parser *)
+	   (*     [< ' Kwd "->" ; ' Ident name >] -> name *)
+	   (*   | [< >] -> !prefix ^ String.uppercase tag *)
+	   match Stream.npeek 2 s with
+	   | [Kwd "->"; Ident name] -> Stream.junk s; Stream.junk s; name
+	   | _ -> !prefix ^ String.uppercase_ascii tag
+	 in
+	 print_string name;
+	 print_string (if !table then "},\n" else ";\n")
+      | [Kwd "$$"] -> Stream.junk s; raise End_of_file
+      | _ -> raise End_of_file
+    done with End_of_file ->
     Printf.printf "#define TAG_NUMBER %d\n" !tag_number
 
 let _ = Printexc.print main ()
